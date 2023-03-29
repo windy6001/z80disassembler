@@ -29,29 +29,66 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
+// **********************************************
+//      逆アセンブル結果
+// **********************************************
+#[derive(Clone, Debug)]
+struct DasmResult {
+    address : usize,        // アドレス
+    mnemonic: String,       // mnemonic
+    opcodesData: Vec<u8>,   // opcode
+}
+
+
+/*impl Copy for DasmResult { }
+
+impl Clone for DasmResult {
+    fn clone(&self) -> DasmResult {
+        *self
+    }
+}*/
+
+impl DasmResult {
+    fn new() -> Self {
+        DasmResult{ address: 0,mnemonic: String::new(), opcodesData: Vec::new()}
+    }
+}
+
+// **********************************************
+//      逆アセンブラ
+// **********************************************
+struct Disassemble {
+    readAddress: usize,      // binData の読み込みアドレス
+    binData: Vec<u8>,        // binary data  
+    maxIdx : usize,          // current idx or max idx
+    result : Vec<DasmResult>,  // 逆アセンブル結果
+    _result: DasmResult,       // 逆アセンブル結果のテンポラリ
+}
+
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = env::args().collect();  // コマンドラインの引数を取得
+    println!("Z80 Disassembler by Windy");
+
     println!("{:?}",args);
-    println!("len={}",args.len());
+    //println!("len={}",args.len());
     if args.len() <= 1 { 
-        println!("usage dasm [filename]");
+        println!("usage: dasm [filename]");
         return;
     }
-    let mut dasm = Disassemble{binData:{Vec::new()}
-                                            ,idx:0
-                                            ,codes:{Vec::new()}};
+    let mut dasm = Disassemble{ readAddress:0,          // バイナリファイルの読み込み位置
+                                binData:Vec::new(),     // バイナリファイル
+                                maxIdx: 0,
+                                result: Vec::new(),
+                                _result: DasmResult::new(),
+                            };
     dasm.load_file( &args[1]);
 
-    while !dasm.isFinish() {
-        dasm.doDisassembleOne();
+    while !dasm.is_finish() {
+        dasm.do_disassemble_one();
     }
+    dasm.output();
 }
 
-struct Disassemble {
-    binData : Vec<u8>,  // data to disassemble 
-    idx : usize,        // read index
-    codes: Vec<u8>,     // opcode and datas
-}
 
 impl Disassemble {
 
@@ -62,50 +99,56 @@ impl Disassemble {
         let mut f = File::open(filename).expect("file not found");
         //self.binData = Vec::new();
         f.read_to_end(&mut self.binData).expect("read error");
-        for c in &self.binData {
-            print!("{:02X} ",c);
-        }
+        //for c in &self.binData {
+        //    print!("{:02X} ",c);
+        //}
     }
 
+/*
     // 後で１６進コードを出力するために保存しておく
-    fn addCodes(&mut self , data:u8) {
-        self.codes.push( data);
-    }
+    fn add_codes(&mut self , data:u8) {
+        println!("maxIdx={} data={:02X}",self.maxIdx ,data);
+        self.opcodes.push( data);
+    }*/
 
-    // １バイト読み込む
-    fn getByte(&mut self) -> u8 {
-        let byte = self.binData[self.idx];
-        self.addCodes( byte);       // 後で１６進コードを出力するために保存しておく
-        self.idx+=1;
+    // **********************************************
+    //      １バイト読み込む
+    // **********************************************
+    fn get_byte(&mut self) -> u8 {
+        let byte = self.binData[self.readAddress];
+        //self.result.opcodes.push( data); 
+        self._result.opcodesData.push( byte ); // 後で１６進コードを出力するために保存しておく
+        self.readAddress+=1;                   // アドレスを足す
         return byte;
     }
 
-    // WORDで読み込む
-    fn getWord(&mut self) -> u16 {
-        let low:u16 = self.getByte() as u16; 
-        let high:u16  = self.getByte() as u16; 
+    // **********************************************
+    //      WORD で読み込む
+    // **********************************************
+    fn get_word(&mut self) -> u16 {
+        let low:u16 = self.get_byte() as u16; 
+        let high:u16  = self.get_byte() as u16; 
         return high*256+low;
     }
 
-    fn fetch(&mut self) -> u8 {
-        return self.getByte();
-    }
+    // **********************************************
+    //      １命令だけ逆アセンブルする
+    // **********************************************
+    fn do_disassemble_one(&mut self){
+        self._result.opcodesData = Vec::new();            // オペコード表示用をクリアする
+        self._result.address = self.readAddress;          // 読み込みアドレスをメモっておく
 
-    // 1命令だけ逆アセンブルする
-    fn doDisassembleOne(&mut self){
-        self.codes = Vec::new();            // オペコード表示用をクリアする
-
-        let preIdx = self.idx;
-        let opcode = self.getByte();
+        //let startAddress = self.address;
+        let opcode = self.get_byte();
 
         let mnemonic:String = match opcode {
             0x00 => String::from("NOP"),
-            0x01 => format!     ("LD    BC,0{:04X}H",self.getWord() ),
+            0x01 => format!     ("LD    BC,0{:04X}H",self.get_word() ),
             0x02 => String::from("LD    (BC),A"),
             0x03 => String::from("INC   BC"),
             0x04 => String::from("INC   B"),
             0x05 => String::from("DEC   B"),
-            0x06 => format!     ("LD    B,0{:02X}H",self.getByte()),
+            0x06 => format!     ("LD    B,0{:02X}H",self.get_byte()),
             0x07 => String::from("RLCA   "),
             0x08 => String::from("EX    AF,AF\'"),
             0x09 => String::from("ADD   HL,BC"),
@@ -113,58 +156,58 @@ impl Disassemble {
             0x0B => String::from("DEC   BC"),
             0x0C => String::from("INC   C"),
             0x0D => String::from("DEC   C"),
-            0x0E => format!     ("LD    C,0{:02X}H",self.getByte()),
+            0x0E => format!     ("LD    C,0{:02X}H",self.get_byte()),
             0x0F => String::from("RRCA" ),
-            0x10 => format!     ("DJNZ  0{:02X}H",self.getByte()),  // relative jump
+            0x10 => format!     ("DJNZ  0{:02X}H",self.get_byte()),  // relative jump
 
-            0x11 => format!     ("LD    DE,0{:04X}H",self.getWord() ),
+            0x11 => format!     ("LD    DE,0{:04X}H",self.get_word() ),
             0x12 => String::from("LD    (DE),A"),
             0x13 => String::from("INC   DE"),
             0x14 => String::from("INC   D"),
             0x15 => String::from("DEC   D"),
-            0x16 => format!     ("LD    D,0{:02X}H",self.getByte()),
+            0x16 => format!     ("LD    D,0{:02X}H",self.get_byte()),
             0x17 => String::from("RLA   "),
-            0x18 => format!     ("JR    0{:02X}H",self.getByte()),  // relative jump
+            0x18 => format!     ("JR    0{:02X}H",self.get_byte()),  // relative jump
             0x19 => String::from("ADD   HL,DE"),
             0x1A => String::from("LD    A,(DE)"),
             0x1B => String::from("DEC   DE"),
             0x1C => String::from("INC   E"),
             0x1D => String::from("DEC   E"),
-            0x1E => format!     ("LD     E,0{:02X}H",self.getByte()),
+            0x1E => format!     ("LD     E,0{:02X}H",self.get_byte()),
             0x1F => String::from("RRA   "),
-            0x20 => format!     ("JR    NZ,0{:02X}H",self.getByte()),  // relative jump
+            0x20 => format!     ("JR    NZ,0{:02X}H",self.get_byte()),  // relative jump
                                          
-            0x21 => format!     ("LD    HL,0{:04X}H",self.getWord() ),
-            0x22 => format!     ("LD    (0{:04X}H),HL",self.getWord() ),
+            0x21 => format!     ("LD    HL,0{:04X}H",self.get_word() ),
+            0x22 => format!     ("LD    (0{:04X}H),HL",self.get_word() ),
             0x23 => String::from("INC   HL"),
             0x24 => String::from("INC   H"),
             0x25 => String::from("DEC   H"),
-            0x26 => format!     ("LD    H,0{:02X}H",self.getByte()),
+            0x26 => format!     ("LD    H,0{:02X}H",self.get_byte()),
             0x27 => String::from("DAA   "),
-            0x28 => format!     ("JR    Z,0{:02X}H",self.getByte()),  // relative jump
+            0x28 => format!     ("JR    Z,0{:02X}H",self.get_byte()),  // relative jump
             0x29 => String::from("ADD   HL,HL"),
-            0x2A => format!     ("LD    HL,(0{:04X}H)",self.getWord() ),
+            0x2A => format!     ("LD    HL,(0{:04X}H)",self.get_word() ),
             0x2B => String::from("DEC   HL"),
             0x2C => String::from("INC   L"),
             0x2D => String::from("DEC   L"),
-            0x2E => format!     ("LD    L,0{:02X}H",self.getByte()),
+            0x2E => format!     ("LD    L,0{:02X}H",self.get_byte()),
             0x2F => String::from("CPL   "),
-            0x30 => format!     ("JR    NC,0{:02X}H",self.getByte()),  // relative jump
+            0x30 => format!     ("JR    NC,0{:02X}H",self.get_byte()),  // relative jump
  
-            0x31 => format!     ("LD    SP,0{:04X}H",self.getWord() ),
-            0x32 => format!     ("LD    ({:04X}H),A",self.getWord() ),
+            0x31 => format!     ("LD    SP,0{:04X}H",self.get_word() ),
+            0x32 => format!     ("LD    ({:04X}H),A",self.get_word() ),
             0x33 => String::from("INC   SP"),
             0x34 => String::from("INC   (HL)"),
             0x35 => String::from("DEC   (HL)"),
-            0x36 => format!     ("LD    (HL),0{:02X}H",self.getByte()),
+            0x36 => format!     ("LD    (HL),0{:02X}H",self.get_byte()),
             0x37 => String::from("SCF   "),
-            0x38 => format!     ("JR    C,0{:02X}H",self.getByte()),  // relative jump
+            0x38 => format!     ("JR    C,0{:02X}H",self.get_byte()),  // relative jump
             0x39 => String::from("LD    HL,SP"),
-            0x3A => format!     ("LD   A,(0{:04X}H)",self.getWord() ),
+            0x3A => format!     ("LD   A,(0{:04X}H)",self.get_word() ),
             0x3B => String::from("DEC   SP"),
             0x3C => String::from("INC   A"),
             0x3D => String::from("DEC   A"),
-            0x3E => format!     ("LD   A,0{:02X}H",self.getByte()),
+            0x3E => format!     ("LD   A,0{:02X}H",self.get_byte()),
             0x3F => String::from("CCF   "),
  
             0x40 => String::from("LD    B,B"),
@@ -310,92 +353,125 @@ impl Disassemble {
  
             0xC0 => String::from("RET   NZ"),
             0xC1 => String::from("POP   BC"),
-            0xC2 => format!     ("JP    NZ,0{:04X}H",self.getWord()),
-            0xC3 => format!     ("JP    0{:04X}H",self.getWord()),
-            0xC4 => format!     ("CALL  NZ,0{:04X}H",self.getWord()),
+            0xC2 => format!     ("JP    NZ,0{:04X}H",self.get_word()),
+            0xC3 => format!     ("JP    0{:04X}H",self.get_word()),
+            0xC4 => format!     ("CALL  NZ,0{:04X}H",self.get_word()),
             0xC5 => String::from("PUSH  BC"),
-            0xC6 => format!     ("ADD   A,0{:02X}H",self.getByte()),
+            0xC6 => format!     ("ADD   A,0{:02X}H",self.get_byte()),
             0xC7 => String::from("RST   00H"),
             0xC8 => String::from("RET   Z"),
             0xC9 => String::from("RET    "),
-            0xCA => format!     ("JP    Z,0{:04X}H",self.getWord()),
-            0xCB => format!     ("Unknown 0{}H",self.getByte()), // 工事中
-            0xCC => format!     ("CALL  Z,0{:04X}H",self.getWord()),
-            0xCD => format!     ("CALL  0{:04X}H",self.getWord()),
-            0xCE => format!     ("ADC   A,0{:02X}H",self.getByte()),
+            0xCA => format!     ("JP    Z,0{:04X}H",self.get_word()),
+            0xCB => format!     ("Unknown 0{}H",self.get_byte()), // 工事中
+            0xCC => format!     ("CALL  Z,0{:04X}H",self.get_word()),
+            0xCD => format!     ("CALL  0{:04X}H",self.get_word()),
+            0xCE => format!     ("ADC   A,0{:02X}H",self.get_byte()),
 
             0xCF => String::from("RST   08H"),
             0xD0 => String::from("RET   NC"),
             0xD1 => String::from("POP   DE"),
-            0xD2 => format!     ("JP    NC,0{:04X}H",self.getWord()),
-            0xD3 => format!     ("OUT   (0{:04X}H),A",self.getByte()),
-            0xD4 => format!     ("CALL  NC,0{:04X}H",self.getWord()),
+            0xD2 => format!     ("JP    NC,0{:04X}H",self.get_word()),
+            0xD3 => format!     ("OUT   (0{:04X}H),A",self.get_byte()),
+            0xD4 => format!     ("CALL  NC,0{:04X}H",self.get_word()),
             0xD5 => String::from("PUSH  DE"),
-            0xD6 => format!     ("SUB   0{:02X}H",self.getByte()),
+            0xD6 => format!     ("SUB   0{:02X}H",self.get_byte()),
             0xD7 => String::from("RST   10H"),
             0xD8 => String::from("RET   C"),
             0xD9 => String::from("EXX"),
-            0xDA => format!     ("JP    C,0{:04X}H",self.getWord()),
-            0xDB => format!     ("IN    A,(0{:04X}H)",self.getByte()),
-            0xDC => format!     ("CALL  C,0{:04X}H",self.getWord()),
+            0xDA => format!     ("JP    C,0{:04X}H",self.get_word()),
+            0xDB => format!     ("IN    A,(0{:04X}H)",self.get_byte()),
+            0xDC => format!     ("CALL  C,0{:04X}H",self.get_word()),
             //0xDD =>  工事中
-            0xDE => format!     ("SBC   A,0{:02X}H",self.getByte()),
+            0xDE => format!     ("SBC   A,0{:02X}H",self.get_byte()),
 
             0xDF => String::from("RST   18H"),
             0xE0 => String::from("RET   PO"),
             0xE1 => String::from("POP   HL"),
-            0xE2 => format!     ("JP    PO,0{:04X}H",self.getWord()),
+            0xE2 => format!     ("JP    PO,0{:04X}H",self.get_word()),
             0xE3 => String::from("EX    (SP),HL"),
-            0xE4 => format!     ("CALL  PO,0{:04X}H",self.getWord()),
+            0xE4 => format!     ("CALL  PO,0{:04X}H",self.get_word()),
             0xE5 => String::from("PUSH  HL"),
-            0xE6 => format!     ("AND   0{:02X}H",self.getByte()),
+            0xE6 => format!     ("AND   0{:02X}H",self.get_byte()),
             0xE7 => String::from("RST   20H"),
             0xE8 => String::from("RET   PE"),
             0xE9 => String::from("JP    (HL)"),
-            0xEA => format!     ("JP    PE,0{:04X}H",self.getWord()),
+            0xEA => format!     ("JP    PE,0{:04X}H",self.get_word()),
             0xEB => String::from("EX    DE,HL"),
-            0xEC => format!     ("CALL  PE,0{:04X}H",self.getWord()),
+            0xEC => format!     ("CALL  PE,0{:04X}H",self.get_word()),
             //0xED =>  工事中
-            0xEE => format!     ("XOR   0{:02X}H",self.getByte()),
+            0xEE => format!     ("XOR   0{:02X}H",self.get_byte()),
 
             0xEF => String::from("RST   28H"),
             0xF0 => String::from("RET   P"),
             0xF1 => String::from("POP   AF"),
-            0xF2 => format!     ("JP    P,0{:04X}H",self.getWord()),
+            0xF2 => format!     ("JP    P,0{:04X}H",self.get_word()),
             0xF3 => String::from("DI    "),
-            0xF4 => format!     ("CALL  P,0{:04X}H",self.getWord()),
+            0xF4 => format!     ("CALL  P,0{:04X}H",self.get_word()),
             0xF5 => String::from("PUSH  AF"),
-            0xF6 => format!     ("OR    0{:02X}H",self.getByte()),
+            0xF6 => format!     ("OR    0{:02X}H",self.get_byte()),
             0xF7 => String::from("RST   30H"),
             0xF8 => String::from("RET   M"),
             0xF9 => String::from("LD    SP,HL"),
-            0xFA => format!     ("JP    M,0{:04X}H",self.getWord()),
+            0xFA => format!     ("JP    M,0{:04X}H",self.get_word()),
             0xFB => String::from("EI    "),
-            0xFC => format!     ("CALL  M,0{:04X}H",self.getWord()),
+            0xFC => format!     ("CALL  M,0{:04X}H",self.get_word()),
             //0xFD =>  工事中
-            0xFE => format!     ("CP    0{:02X}H",self.getByte()),
+            0xFE => format!     ("CP    0{:02X}H",self.get_byte()),
             0xFF => String::from("RST   38H"),
 
             _ => String::from("Unknown"),
         };
-        // ----- 16進数コードを表示 --------
-        for data in &self.codes {
-            print!("{:02X} ",data);
+
+        self._result.mnemonic = mnemonic;
+        self.result.push( self._result.clone() );
+      //  println!("{:?} {}",self._result.opcodesData, self._result.mnemonic );
+
+        //return self.result;
+
+        //for data in &self.opcodes {
+            //self.opcodesData[ self.maxIdx ].push( data );
+        //    self.result.opcodesData.push( data);
+        //}
+        //self.maxIdx += 1;
+    }
+
+
+  fn output(&self) {
+        for i in 0..self.result.len() {
+            // ----- ニーモニックを表示 --------
+            print!("{:<20}",self.result[i].mnemonic);
+
+            // ----- アドレスを表示 ----------
+            print!("    ;");
+            print!("{:>04x}:  ",self.result[i].address);
+            // ----- 16進数コードを表示 --------
+            for data in &self.result[i].opcodesData {
+                print!("{:02X} ",data);
+            }
+            let mut count:isize = (4-self.result[i].opcodesData.len()) as isize;
+            if count <0 {
+                count = count * (-1);
+            }
+            for _n in 1..=count {
+                print!("   ");
+            }
+            // ----- キャラクターを表示 --------
+            for data in &self.result[i].opcodesData {
+                let mut ch = *data;
+                if ch < 0x20 {
+                    ch = 0x20;
+                }
+                print!("{}",ch as char);
+            }
+
+            println!("");
         }
-        let mut count:isize = (4-self.codes.len()) as isize;
-        if count <0 {
-            count = count * (-1);
-        }
-        for n in 1..=count {
-            print!("   ");
-        }
-        // ----- ニーモニックを表示 --------
-        println!("{}",mnemonic);
     }
 
     // データの最後に到達したか？
-    fn isFinish(& self)-> bool {
-        return self.idx >= self.binData.len();
+    fn is_finish(& self)-> bool {
+        return self.readAddress >= self.binData.len();
     }
+
 }
 
