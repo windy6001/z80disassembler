@@ -132,6 +132,37 @@ impl Disassemble {
     }
 
     // **********************************************
+    //      2バイト数値をフォーマットする
+    // **********************************************
+    fn format_word(&mut self,address:u16) -> String {
+        let s = format!("{:04X}H",address);
+        let t:String;  
+        let ch = s.chars().nth(0).unwrap(); // １６進数の文字列にしてみて一文字目を抜き出す
+        if ch=='0'||ch=='1'||ch=='2'||ch=='3'||ch=='4'||ch=='5'||ch=='6'||ch=='7'||ch=='8'||ch=='9' {
+            t = format!("{}",s);
+        }else {
+            t = format!("0{}",s);
+        }
+        return t;
+    }
+
+    // **********************************************
+    //      バイト数値をフォーマットする
+    // **********************************************
+    fn format_byte(&mut self,address:u8) -> String {
+        let s = format!("{:02X}H",address);
+        let t:String;  
+        let ch = s.chars().nth(0).unwrap(); // １６進数の文字列にしてみて一文字目を抜き出す
+        if ch=='0'||ch=='1'||ch=='2'||ch=='3'||ch=='4'||ch=='5'||ch=='6'||ch=='7'||ch=='8'||ch=='9' {
+            t = format!("{}",s);
+        }else {
+            t = format!("0{}",s);
+        }
+        return t;
+    }
+
+
+    // **********************************************
     //      １命令だけ逆アセンブルする
     // **********************************************
     fn do_disassemble_one(&mut self){
@@ -143,12 +174,15 @@ impl Disassemble {
 
         let mnemonic:String = match opcode {
             0x00 => String::from("NOP"),
-            0x01 => format!     ("LD    BC,0{:04X}H",self.get_word() ),
+            0x01 => {let a = self.get_word(); 
+                    format!     ("LD    BC,{}",self.format_word(a))},
             0x02 => String::from("LD    (BC),A"),
             0x03 => String::from("INC   BC"),
             0x04 => String::from("INC   B"),
             0x05 => String::from("DEC   B"),
-            0x06 => format!     ("LD    B,0{:02X}H",self.get_byte()),
+                    
+            0x06 => {let a = self.get_byte(); 
+                    format!     ("LD    B,{}",self.format_byte(a))},
             0x07 => String::from("RLCA   "),
             0x08 => String::from("EX    AF,AF\'"),
             0x09 => String::from("ADD   HL,BC"),
@@ -156,58 +190,78 @@ impl Disassemble {
             0x0B => String::from("DEC   BC"),
             0x0C => String::from("INC   C"),
             0x0D => String::from("DEC   C"),
-            0x0E => format!     ("LD    C,0{:02X}H",self.get_byte()),
+            0x0E => {let a= self.get_byte();
+                    format!     ("LD    C,{}",self.format_byte(a))},
             0x0F => String::from("RRCA" ),
-            0x10 => format!     ("DJNZ  0{:02X}H",self.get_byte()),  // relative jump
+            0x10 => {let a= self.get_byte();
+                    format!     ("DJNZ  {}",self.format_byte(a))},  // relative jump
 
-            0x11 => format!     ("LD    DE,0{:04X}H",self.get_word() ),
+            0x11 => {let a = self.get_word();
+                    format!     ("LD    DE,{}",self.format_word(a))},
             0x12 => String::from("LD    (DE),A"),
             0x13 => String::from("INC   DE"),
             0x14 => String::from("INC   D"),
             0x15 => String::from("DEC   D"),
-            0x16 => format!     ("LD    D,0{:02X}H",self.get_byte()),
+            0x16 => {let a = self.get_byte();
+                    format!     ("LD    D,{}",self.format_byte(a))},
             0x17 => String::from("RLA   "),
-            0x18 => format!     ("JR    0{:02X}H",self.get_byte()),  // relative jump
+            0x18 => {let a = self.get_byte();
+                    format!     ("JR    {}",self.format_byte(a))},  // relative jump
             0x19 => String::from("ADD   HL,DE"),
             0x1A => String::from("LD    A,(DE)"),
             0x1B => String::from("DEC   DE"),
             0x1C => String::from("INC   E"),
             0x1D => String::from("DEC   E"),
-            0x1E => format!     ("LD     E,0{:02X}H",self.get_byte()),
+            0x1E => {let a = self.get_byte();
+                    format!     ("LD     E,{}",self.format_byte(a))},
             0x1F => String::from("RRA   "),
-            0x20 => format!     ("JR    NZ,0{:02X}H",self.get_byte()),  // relative jump
+            0x20 => {let a = self.get_byte();
+                    format!     ("JR    NZ,{}",self.format_byte(a))},  // relative jump
                                          
-            0x21 => format!     ("LD    HL,0{:04X}H",self.get_word() ),
-            0x22 => format!     ("LD    (0{:04X}H),HL",self.get_word() ),
+            0x21 => {let a = self.get_word();
+                    format!     ("LD    HL,{}",self.format_word(a) )},
+            0x22 => {let a = self.get_word();
+                    format!     ("LD    ({}),HL",self.format_word(a) )},
             0x23 => String::from("INC   HL"),
             0x24 => String::from("INC   H"),
             0x25 => String::from("DEC   H"),
-            0x26 => format!     ("LD    H,0{:02X}H",self.get_byte()),
+            0x26 => {let a = self.get_byte();
+                    format!     ("LD    H,{}",self.format_byte(a))},
             0x27 => String::from("DAA   "),
-            0x28 => format!     ("JR    Z,0{:02X}H",self.get_byte()),  // relative jump
+            0x28 => {let a = self.get_byte();
+                    format!     ("JR    Z,{}",self.format_byte(a))},  // relative jump
             0x29 => String::from("ADD   HL,HL"),
-            0x2A => format!     ("LD    HL,(0{:04X}H)",self.get_word() ),
+            0x2A => {let a = self.get_word();
+                    format!     ("LD    HL,({})",self.format_word(a))},
             0x2B => String::from("DEC   HL"),
             0x2C => String::from("INC   L"),
             0x2D => String::from("DEC   L"),
-            0x2E => format!     ("LD    L,0{:02X}H",self.get_byte()),
+            0x2E => {let a = self.get_byte();
+                    format!     ("LD    L,{}",self.format_byte(a))},
             0x2F => String::from("CPL   "),
-            0x30 => format!     ("JR    NC,0{:02X}H",self.get_byte()),  // relative jump
+            0x30 => {let a = self.get_byte();
+                    format!     ("JR    NC,{}",self.format_byte(a))},  // relative jump
  
-            0x31 => format!     ("LD    SP,0{:04X}H",self.get_word() ),
-            0x32 => format!     ("LD    ({:04X}H),A",self.get_word() ),
+            0x31 => {let a = self.get_word();
+                    format!     ("LD    SP,{}",self.format_word(a))},
+            0x32 => {let a = self.get_word();
+                    format!     ("LD    ({}),A",self.format_word(a))},
             0x33 => String::from("INC   SP"),
             0x34 => String::from("INC   (HL)"),
             0x35 => String::from("DEC   (HL)"),
-            0x36 => format!     ("LD    (HL),0{:02X}H",self.get_byte()),
+            0x36 => {let a = self.get_byte();
+                    format!     ("LD    (HL),{}",self.format_byte(a))},
             0x37 => String::from("SCF   "),
-            0x38 => format!     ("JR    C,0{:02X}H",self.get_byte()),  // relative jump
+            0x38 => {let a = self.get_byte();
+                    format!     ("JR    C,{}",self.format_byte(a))},  // relative jump
             0x39 => String::from("LD    HL,SP"),
-            0x3A => format!     ("LD   A,(0{:04X}H)",self.get_word() ),
+            0x3A => {let a = self.get_word();
+                    format!     ("LD    A,({})",self.format_word(a))},
             0x3B => String::from("DEC   SP"),
             0x3C => String::from("INC   A"),
             0x3D => String::from("DEC   A"),
-            0x3E => format!     ("LD   A,0{:02X}H",self.get_byte()),
+            0x3E => {let a = self.get_byte();
+                    format!     ("LD    A,{}",self.format_byte(a))},
             0x3F => String::from("CCF   "),
  
             0x40 => String::from("LD    B,B"),
@@ -353,70 +407,99 @@ impl Disassemble {
  
             0xC0 => String::from("RET   NZ"),
             0xC1 => String::from("POP   BC"),
-            0xC2 => format!     ("JP    NZ,0{:04X}H",self.get_word()),
-            0xC3 => format!     ("JP    0{:04X}H",self.get_word()),
-            0xC4 => format!     ("CALL  NZ,0{:04X}H",self.get_word()),
+            0xC2 => {let a = self.get_word();
+                    format!     ("JP    NZ,{}",self.format_word(a))},
+            0xC3 => {let a = self.get_word();
+                    format!     ("JP    {}",self.format_word(a))},
+            0xC4 => {let a = self.get_word();
+                    format!     ("CALL  NZ,{}",self.format_word(a))},
             0xC5 => String::from("PUSH  BC"),
-            0xC6 => format!     ("ADD   A,0{:02X}H",self.get_byte()),
+            0xC6 => {let a = self.get_byte();
+                    format!     ("ADD   A,{}",self.format_byte(a))},
             0xC7 => String::from("RST   00H"),
             0xC8 => String::from("RET   Z"),
             0xC9 => String::from("RET    "),
-            0xCA => format!     ("JP    Z,0{:04X}H",self.get_word()),
-            0xCB => format!     ("Unknown 0{}H",self.get_byte()), // 工事中
-            0xCC => format!     ("CALL  Z,0{:04X}H",self.get_word()),
-            0xCD => format!     ("CALL  0{:04X}H",self.get_word()),
-            0xCE => format!     ("ADC   A,0{:02X}H",self.get_byte()),
+            0xCA => {let a = self.get_word();
+                    format!     ("JP    Z,{}",self.format_word(a))},
+            0xCB => {let a = self.get_byte();
+                    format!     ("Unknown {}",self.format_byte(a))}, // 工事中
+            0xCC => {let a = self.get_word();
+                    format!     ("CALL  Z,0{}",self.format_word(a))},
+            0xCD => {let a = self.get_word();
+                    format!     ("CALL  {}",self.format_word(a))},
+            0xCE => {let a = self.get_byte();
+                    format!     ("ADC   A,0{}",self.format_byte(a))},
 
             0xCF => String::from("RST   08H"),
             0xD0 => String::from("RET   NC"),
             0xD1 => String::from("POP   DE"),
-            0xD2 => format!     ("JP    NC,0{:04X}H",self.get_word()),
-            0xD3 => format!     ("OUT   (0{:04X}H),A",self.get_byte()),
-            0xD4 => format!     ("CALL  NC,0{:04X}H",self.get_word()),
+            0xD2 => {let a = self.get_word();
+                    format!     ("JP    NC,{}",self.format_word(a))},
+            0xD3 => {let a = self.get_byte();
+                    format!     ("OUT   ({}),A",self.format_byte(a))},
+            0xD4 => {let a = self.get_word();
+                    format!     ("CALL  NC,{}",self.format_word(a))},
             0xD5 => String::from("PUSH  DE"),
-            0xD6 => format!     ("SUB   0{:02X}H",self.get_byte()),
+            0xD6 => {let a = self.get_byte();
+                    format!     ("SUB   {}",self.format_byte(a))},
             0xD7 => String::from("RST   10H"),
             0xD8 => String::from("RET   C"),
             0xD9 => String::from("EXX"),
-            0xDA => format!     ("JP    C,0{:04X}H",self.get_word()),
-            0xDB => format!     ("IN    A,(0{:04X}H)",self.get_byte()),
-            0xDC => format!     ("CALL  C,0{:04X}H",self.get_word()),
+            0xDA => {let a = self.get_word();
+                    format!     ("JP    C,{}",self.format_word(a))},
+            0xDB => {let a = self.get_byte();
+                    format!     ("IN    A,({})",self.format_byte(a))},
+            0xDC => {let a = self.get_word();
+                    format!     ("CALL  C,{}",self.format_word(a))},
             //0xDD =>  工事中
-            0xDE => format!     ("SBC   A,0{:02X}H",self.get_byte()),
+            0xDE => {let a = self.get_byte();
+                    format!     ("SBC   A,{}",self.format_byte(a))},
 
             0xDF => String::from("RST   18H"),
             0xE0 => String::from("RET   PO"),
             0xE1 => String::from("POP   HL"),
-            0xE2 => format!     ("JP    PO,0{:04X}H",self.get_word()),
+            0xE2 => {let a = self.get_word();
+                    format!     ("JP    PO,{}",self.format_word(a))},
             0xE3 => String::from("EX    (SP),HL"),
-            0xE4 => format!     ("CALL  PO,0{:04X}H",self.get_word()),
+            0xE4 => {let a = self.get_word();
+                    format!     ("CALL  PO,{}",self.format_word(a))},
             0xE5 => String::from("PUSH  HL"),
-            0xE6 => format!     ("AND   0{:02X}H",self.get_byte()),
+            0xE6 => {let a = self.get_byte();
+                    format!     ("AND   0{}H",self.format_byte(a))},
             0xE7 => String::from("RST   20H"),
             0xE8 => String::from("RET   PE"),
             0xE9 => String::from("JP    (HL)"),
-            0xEA => format!     ("JP    PE,0{:04X}H",self.get_word()),
+            0xEA => {let a = self.get_word();
+                    format!     ("JP    PE,{}",self.format_word(a))},
             0xEB => String::from("EX    DE,HL"),
-            0xEC => format!     ("CALL  PE,0{:04X}H",self.get_word()),
+            0xEC => {let a = self.get_word();
+                    format!     ("CALL  PE,{}",self.format_word(a))},
             //0xED =>  工事中
-            0xEE => format!     ("XOR   0{:02X}H",self.get_byte()),
+            0xEE => {let a = self.get_byte();
+                    format!     ("XOR   {}",self.format_byte(a))},
 
             0xEF => String::from("RST   28H"),
             0xF0 => String::from("RET   P"),
             0xF1 => String::from("POP   AF"),
-            0xF2 => format!     ("JP    P,0{:04X}H",self.get_word()),
+            0xF2 => {let a = self.get_word();
+                    format!     ("JP    P,{}",self.format_word(a))},
             0xF3 => String::from("DI    "),
-            0xF4 => format!     ("CALL  P,0{:04X}H",self.get_word()),
+            0xF4 => {let a = self.get_word();
+                    format!     ("CALL  P,{}",self.format_word(a))},
             0xF5 => String::from("PUSH  AF"),
-            0xF6 => format!     ("OR    0{:02X}H",self.get_byte()),
+            0xF6 => {let a = self.get_byte();
+                    format!     ("OR    {}",self.format_byte(a))},
             0xF7 => String::from("RST   30H"),
             0xF8 => String::from("RET   M"),
             0xF9 => String::from("LD    SP,HL"),
-            0xFA => format!     ("JP    M,0{:04X}H",self.get_word()),
+            0xFA => {let a = self.get_word();
+                    format!     ("JP    M,{}",self.format_word(a))},
             0xFB => String::from("EI    "),
-            0xFC => format!     ("CALL  M,0{:04X}H",self.get_word()),
+            0xFC => {let a = self.get_word();
+                    format!     ("CALL  M,{}",self.format_word(a))},
             //0xFD =>  工事中
-            0xFE => format!     ("CP    0{:02X}H",self.get_byte()),
+            0xFE => {let a = self.get_byte();
+                    format!     ("CP    {}",self.format_byte(a))},
             0xFF => String::from("RST   38H"),
 
             _ => String::from("Unknown"),
@@ -434,7 +517,6 @@ impl Disassemble {
         //}
         //self.maxIdx += 1;
     }
-
 
   fn output(&self) {
         for i in 0..self.result.len() {
