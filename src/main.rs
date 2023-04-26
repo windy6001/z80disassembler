@@ -325,7 +325,7 @@ impl Disassemble {
             0x73 => String::from("LD    (HL),E"),
             0x74 => String::from("LD    (HL),H"),
             0x75 => String::from("LD    (HL),L"),
-            0x76 => String::from("LD    (HL),(HL)"),
+            0x76 => String::from("HALT        "),
             0x77 => String::from("LD    (HL),A"),
  
             0x78 => String::from("LD    A,B"),
@@ -345,6 +345,7 @@ impl Disassemble {
             0x85 => String::from("ADD   A,L"),
             0x86 => String::from("ADD   A,(HL)"),
             0x87 => String::from("ADD   A,A"),
+
             0x88 => String::from("ADC   A,B"),
             0x89 => String::from("ADC   A,C"),
             0x8A => String::from("ADC   A,D"),
@@ -362,6 +363,7 @@ impl Disassemble {
             0x95 => String::from("SUB   L"),
             0x96 => String::from("SUB   (HL)"),
             0x97 => String::from("SUB   A"),
+
             0x98 => String::from("SBC   A,B"),
             0x99 => String::from("SBC   A,C"),
             0x9A => String::from("SBC   A,D"),
@@ -379,6 +381,7 @@ impl Disassemble {
             0xA5 => String::from("AND   L"),
             0xA6 => String::from("AND   (HL)"),
             0xA7 => String::from("AND   A"),
+
             0xA8 => String::from("XOR   A,B"),
             0xA9 => String::from("XOR   A,C"),
             0xAA => String::from("XOR   A,D"),
@@ -386,7 +389,7 @@ impl Disassemble {
             0xAC => String::from("XOR   A,H"),
             0xAD => String::from("XOR   A,L"),
             0xAE => String::from("XOR   A,(HL) "),
-            0xAF => String::from("XOR   A,A"),
+            0xAF => String::from("XOR   A"),
  
             0xB0 => String::from("OR    B"),
             0xB1 => String::from("OR    C"),
@@ -396,14 +399,15 @@ impl Disassemble {
             0xB5 => String::from("OR    L"),
             0xB6 => String::from("OR    (HL)"),
             0xB7 => String::from("OR    A"),
-            0xB8 => String::from("CP    A,B"),
-            0xB9 => String::from("CP    A,C"),
-            0xBA => String::from("CP    A,D"),
-            0xBB => String::from("CP    A,E"),
-            0xBC => String::from("CP    A,H"),
-            0xBD => String::from("CP    A,L"),
-            0xBE => String::from("CP    A,(HL)"),
-            0xBF => String::from("CP    A,A"),
+
+            0xB8 => String::from("CP    B"),
+            0xB9 => String::from("CP    C"),
+            0xBA => String::from("CP    D"),
+            0xBB => String::from("CP    E"),
+            0xBC => String::from("CP    H"),
+            0xBD => String::from("CP    L"),
+            0xBE => String::from("CP    (HL)"),
+            0xBF => String::from("CP    A"),
  
             0xC0 => String::from("RET   NZ"),
             0xC1 => String::from("POP   BC"),
@@ -421,14 +425,65 @@ impl Disassemble {
             0xC9 => String::from("RET    "),
             0xCA => {let a = self.get_word();
                     format!     ("JP    Z,{}",self.format_word(a))},
-            0xCB => {let a = self.get_byte();
-                    format!     ("Unknown {}",self.format_byte(a))}, // 工事中
+            0xCB => {let opcode2 = self.get_byte();
+                    let a = opcode2 & 0xf8;
+                    let mnemonic = match a {
+                        0x00 => String::from("RLC"),
+                        0x08 => String::from("RRC"),
+                        0x10 => String::from("RL"),
+                        0x18 => String::from("RR"),
+                        0x20 => String::from("SLA"),  
+                        0x28 => String::from("SRA"),
+                        0x38 => String::from("SRL"),
+ 
+                        0x40 => String::from("BIT 0,"),
+                        0x48 => String::from("BIT 1,"),
+                        0x50 => String::from("BIT 2,"),
+                        0x58 => String::from("BIT 3,"),
+                        0x60 => String::from("BIT 4,"),
+                        0x68 => String::from("BIT 5,"),
+                        0x70 => String::from("BIT 6,"),
+                        0x78 => String::from("BIT 7,"),
+ 
+                        0x80 => String::from("RES 0,"),
+                        0x88 => String::from("RES 1,"),
+                        0x90 => String::from("RES 2,"),
+                        0x98 => String::from("RES 3,"),
+                        0xA0 => String::from("RES 4,"),
+                        0xA8 => String::from("RES 5,"),
+                        0xB0 => String::from("RES 6,"),
+                        0xB8 => String::from("RES 7,"),
+ 
+                        0xC0 => String::from("SET 0,"),
+                        0xC8 => String::from("SET 1,"),
+                        0xD0 => String::from("SET 2,"),
+                        0xD8 => String::from("SET 3,"),
+                        0xE0 => String::from("SET 4,"),
+                        0xE8 => String::from("SET 5,"),
+                        0xF0 => String::from("SET 6,"),
+                        0xF8 => String::from("SET 7,"),
+ 
+                        _ => String::from("Unknown"),
+                    };
+                    let b = opcode2 & 7;
+                    let reg = match b {
+                        0x00 => String::from("B"),
+                        0x01 => String::from("C"),
+                        0x02 => String::from("D"),
+                        0x03 => String::from("E"),
+                        0x04 => String::from("H"),  
+                        0x05 => String::from("L"),
+                        0x06 => String::from("(HL)"),
+                        0x07 => String::from("A"),
+                        _ => String::from(""),
+                    };
+                    format!     ("{} {}",a,b)},
             0xCC => {let a = self.get_word();
-                    format!     ("CALL  Z,0{}",self.format_word(a))},
+                    format!     ("CALL  Z,{}",self.format_word(a))},
             0xCD => {let a = self.get_word();
                     format!     ("CALL  {}",self.format_word(a))},
             0xCE => {let a = self.get_byte();
-                    format!     ("ADC   A,0{}",self.format_byte(a))},
+                    format!     ("ADC   A,{}",self.format_byte(a))},
 
             0xCF => String::from("RST   08H"),
             0xD0 => String::from("RET   NC"),
@@ -465,7 +520,7 @@ impl Disassemble {
                     format!     ("CALL  PO,{}",self.format_word(a))},
             0xE5 => String::from("PUSH  HL"),
             0xE6 => {let a = self.get_byte();
-                    format!     ("AND   0{}H",self.format_byte(a))},
+                    format!     ("AND   {}",self.format_byte(a))},
             0xE7 => String::from("RST   20H"),
             0xE8 => String::from("RET   PE"),
             0xE9 => String::from("JP    (HL)"),
