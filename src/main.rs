@@ -29,6 +29,9 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
+mod charcode;
+use crate::charcode::toUTF8;
+
 // **********************************************
 //      逆アセンブル結果
 // **********************************************
@@ -426,6 +429,18 @@ impl Disassemble {
             0xCA => {let a = self.get_word();
                     format!     ("JP    Z,{}",self.format_word(a))},
             0xCB => {let opcode2 = self.get_byte();
+                    let b = opcode2 & 7;
+                    let reg = match b {
+                        0x00 => String::from("B"),
+                        0x01 => String::from("C"),
+                        0x02 => String::from("D"),
+                        0x03 => String::from("E"),
+                        0x04 => String::from("H"),  
+                        0x05 => String::from("L"),
+                        0x06 => String::from("(HL)"),
+                        0x07 => String::from("A"),
+                        _ => String::from(""),
+                    };
                     let a = opcode2 & 0xf8;
                     let mnemonic = match a {
                         0x00 => String::from("RLC"),
@@ -463,21 +478,9 @@ impl Disassemble {
                         0xF0 => String::from("SET 6,"),
                         0xF8 => String::from("SET 7,"),
  
-                        _ => String::from("Unknown"),
+                        _ =>    String::from("Unknown"),
                     };
-                    let b = opcode2 & 7;
-                    let reg = match b {
-                        0x00 => String::from("B"),
-                        0x01 => String::from("C"),
-                        0x02 => String::from("D"),
-                        0x03 => String::from("E"),
-                        0x04 => String::from("H"),  
-                        0x05 => String::from("L"),
-                        0x06 => String::from("(HL)"),
-                        0x07 => String::from("A"),
-                        _ => String::from(""),
-                    };
-                    format!     ("{} {}",a,b)},
+                    format!     ("{}{}",mnemonic, reg)},
             0xCC => {let a = self.get_word();
                     format!     ("CALL  Z,{}",self.format_word(a))},
             0xCD => {let a = self.get_word();
@@ -594,11 +597,8 @@ impl Disassemble {
             }
             // ----- キャラクターを表示 --------
             for data in &self.result[i].opcodesData {
-                let mut ch = *data;
-                if ch < 0x20 {
-                    ch = 0x20;
-                }
-                print!("{}",ch as char);
+                if data >= &0xA0 {continue; }   // ****** ゆくゆくは削除するコード ******
+                print!("{}",toUTF8[ *data as usize]);
             }
 
             println!("");
