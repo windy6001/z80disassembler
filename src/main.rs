@@ -32,12 +32,15 @@ use std::io::prelude::*;
 mod charcode;
 use crate::charcode::toUTF8;
 
+extern crate regex;
+use regex::Regex;
+
 // **********************************************
 //      逆アセンブル結果
 // **********************************************
 #[derive(Clone, Debug)]
 struct DasmResult {
-    address : usize,        // アドレス
+    offset : usize,         // offset アドレス
     mnemonic: String,       // mnemonic
     opcodesData: Vec<u8>,   // opcode
 }
@@ -53,7 +56,7 @@ impl Clone for DasmResult {
 
 impl DasmResult {
     fn new() -> Self {
-        DasmResult{ address: 0,mnemonic: String::new(), opcodesData: Vec::new()}
+        DasmResult{ offset: 0,mnemonic: String::new(), opcodesData: Vec::new()}
     }
 }
 
@@ -61,6 +64,7 @@ impl DasmResult {
 //      逆アセンブラ
 // **********************************************
 struct Disassemble {
+    orgAddress: u16,         // ORG アドレス
     readAddress: usize,      // binData の読み込みアドレス
     binData: Vec<u8>,        // binary data  
     maxIdx : usize,          // current idx or max idx
@@ -75,16 +79,26 @@ fn main() {
     println!("{:?}",args);
     //println!("len={}",args.len());
     if args.len() <= 1 { 
-        println!("usage: dasm [filename]");
+        println!("usage: dasm [option] filename");
         return;
     }
-    let mut dasm = Disassemble{ readAddress:0,          // バイナリファイルの読み込み位置
+    let mut dasm = Disassemble{ orgAddress: 0,
+                                readAddress:0,          // バイナリファイルの読み込み位置
                                 binData:Vec::new(),     // バイナリファイル
                                 maxIdx: 0,
                                 result: Vec::new(),
                                 _result: DasmResult::new(),
                             };
     dasm.load_file( &args[1]);
+
+    // ************* オプションチェック ****************
+    for str in &args {
+        let re = Regex::new(r"-o").unwrap();   // ORG
+        match re.find( str) {
+            Some(m) => println!("Found {} {}-{}",m.as_str() , m.start() ,m.end()) ,
+            None =>    println!("Not Found "), 
+        }
+    }
 
     while !dasm.is_finish() {
         dasm.do_disassemble_one();
@@ -170,7 +184,7 @@ impl Disassemble {
     // **********************************************
     fn do_disassemble_one(&mut self){
         self._result.opcodesData = Vec::new();            // オペコード表示用をクリアする
-        self._result.address = self.readAddress;          // 読み込みアドレスをメモっておく
+        self._result.offset = self.readAddress;          // 読み込みアドレスをメモっておく
 
         //let startAddress = self.address;
         let opcode = self.get_byte();
@@ -443,13 +457,13 @@ impl Disassemble {
                     };
                     let a = opcode2 & 0xf8;
                     let mnemonic = match a {
-                        0x00 => String::from("RLC"),
-                        0x08 => String::from("RRC"),
-                        0x10 => String::from("RL"),
-                        0x18 => String::from("RR"),
-                        0x20 => String::from("SLA"),  
-                        0x28 => String::from("SRA"),
-                        0x38 => String::from("SRL"),
+                        0x00 => String::from("RLC "),
+                        0x08 => String::from("RRC "),
+                        0x10 => String::from("RL "),
+                        0x18 => String::from("RR "),
+                        0x20 => String::from("SLA "),  
+                        0x28 => String::from("SRA "),
+                        0x38 => String::from("SRL "),
  
                         0x40 => String::from("BIT 0,"),
                         0x48 => String::from("BIT 1,"),
@@ -583,7 +597,7 @@ impl Disassemble {
 
             // ----- アドレスを表示 ----------
             print!("    ;");
-            print!("{:>04x}:  ",self.result[i].address);
+            print!("{:>04x}:  ",self.result[i].offset);
             // ----- 16進数コードを表示 --------
             for data in &self.result[i].opcodesData {
                 print!("{:02X} ",data);
@@ -597,7 +611,6 @@ impl Disassemble {
             }
             // ----- キャラクターを表示 --------
             for data in &self.result[i].opcodesData {
-                if data >= &0xA0 {continue; }   // ****** ゆくゆくは削除するコード ******
                 print!("{}",toUTF8[ *data as usize]);
             }
 
