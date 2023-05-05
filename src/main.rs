@@ -30,9 +30,9 @@ use std::fs::File;
 use std::io::prelude::*;
 
 mod charcode;
-use crate::charcode::toUTF8;
+use crate::charcode::TOUTF8;  // アスキーコードを文字に変換するテーブル
 
-extern crate regex;
+extern crate regex; // 正規表現
 use regex::Regex;
 
 // **********************************************
@@ -42,7 +42,7 @@ use regex::Regex;
 struct DasmResult {
     offset : usize,         // offset アドレス
     mnemonic: String,       // mnemonic
-    opcodesData: Vec<u8>,   // opcode
+    opcodes_data: Vec<u8>,   // opcode
 }
 
 
@@ -56,7 +56,7 @@ impl Clone for DasmResult {
 
 impl DasmResult {
     fn new() -> Self {
-        DasmResult{ offset: 0,mnemonic: String::new(), opcodesData: Vec::new()}
+        DasmResult{ offset: 0,mnemonic: String::new(), opcodes_data: Vec::new()}
     }
 }
 
@@ -64,28 +64,28 @@ impl DasmResult {
 //      逆アセンブラ
 // **********************************************
 struct Disassemble {
-    orgAddress: u16,         // ORG アドレス
-    readAddress: usize,      // binData の読み込みアドレス
-    binData: Vec<u8>,        // binary data  
-    maxIdx : usize,          // current idx or max idx
+    org_address: usize,         // ORG アドレス
+    read_address: usize,      // bin_data の読み込みアドレス
+    bin_data: Vec<u8>,        // binary data  
     result : Vec<DasmResult>,  // 逆アセンブル結果
     _result: DasmResult,       // 逆アセンブル結果のテンポラリ
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();  // コマンドラインの引数を取得
-    println!("Z80 Disassembler by Windy");
+    //println!("Z80 Disassembler by Windy");
 
     println!("{:?}",args);
+    println!("");
     //println!("len={}",args.len());
     if args.len() <= 1 { 
         println!("usage: dasm [option] filename");
+        println!("       -oXXXX  The address of ORG command");
         return;
     }
-    let mut dasm = Disassemble{ orgAddress: 0,
-                                readAddress:0,          // バイナリファイルの読み込み位置
-                                binData:Vec::new(),     // バイナリファイル
-                                maxIdx: 0,
+    let mut dasm = Disassemble{ org_address: 0,
+                                read_address:0,          // バイナリファイルの読み込み位置
+                                bin_data:Vec::new(),     // バイナリファイル
                                 result: Vec::new(),
                                 _result: DasmResult::new(),
                             };
@@ -93,9 +93,14 @@ fn main() {
 
     // ************* オプションチェック ****************
     for str in &args {
-        let re = Regex::new(r"-o").unwrap();   // ORG
-        match re.find( str) {
-            Some(m) => println!("Found {} {}-{}",m.as_str() , m.start() ,m.end()) ,
+        let re = Regex::new(r"(-o)([0-9A-Fa-f]+)").unwrap();// ORG指定 -oXXXX でアドレス指定
+        match re.captures( str) {
+            Some(caps) => {
+                        //println!("option={} address={}",&caps[1],&caps[2]);
+                        let org = usize::from_str_radix(&caps[2], 16);
+                        
+                        dasm.org_address = org.unwrap();     // FIX ME エラーが起きると落ちる
+            } ,
             None =>    println!("Not Found "), 
         }
     }
@@ -114,28 +119,23 @@ impl Disassemble {
         println!("{}",filename);
 
         let mut f = File::open(filename).expect("file not found");
-        //self.binData = Vec::new();
-        f.read_to_end(&mut self.binData).expect("read error");
-        //for c in &self.binData {
+        //self.bin_data = Vec::new();
+        f.read_to_end(&mut self.bin_data).expect("read error");
+        //for c in &self.bin_data {
         //    print!("{:02X} ",c);
         //}
     }
 
-/*
-    // 後で１６進コードを出力するために保存しておく
-    fn add_codes(&mut self , data:u8) {
-        println!("maxIdx={} data={:02X}",self.maxIdx ,data);
-        self.opcodes.push( data);
-    }*/
+
 
     // **********************************************
     //      １バイト読み込む
     // **********************************************
     fn get_byte(&mut self) -> u8 {
-        let byte = self.binData[self.readAddress];
+        let byte = self.bin_data[self.read_address];
         //self.result.opcodes.push( data); 
-        self._result.opcodesData.push( byte ); // 後で１６進コードを出力するために保存しておく
-        self.readAddress+=1;                   // アドレスを足す
+        self._result.opcodes_data.push( byte ); // 後で１６進コードを出力するために保存しておく
+        self.read_address+=1;                   // アドレスを足す
         return byte;
     }
 
@@ -183,8 +183,8 @@ impl Disassemble {
     //      １命令だけ逆アセンブルする
     // **********************************************
     fn do_disassemble_one(&mut self){
-        self._result.opcodesData = Vec::new();            // オペコード表示用をクリアする
-        self._result.offset = self.readAddress;          // 読み込みアドレスをメモっておく
+        self._result.opcodes_data = Vec::new();            // オペコード表示用をクリアする
+        self._result.offset = self.read_address;          // 読み込みアドレスをメモっておく
 
         //let startAddress = self.address;
         let opcode = self.get_byte();
@@ -444,7 +444,7 @@ impl Disassemble {
                     format!     ("JP    Z,{}",self.format_word(a))},
             0xCB => {let opcode2 = self.get_byte();
                     let b = opcode2 & 7;
-                    let reg = match b {
+                    let mut reg = match b {
                         0x00 => String::from("B"),
                         0x01 => String::from("C"),
                         0x02 => String::from("D"),
@@ -492,7 +492,7 @@ impl Disassemble {
                         0xF0 => String::from("SET 6,"),
                         0xF8 => String::from("SET 7,"),
  
-                        _ =>    String::from("Unknown"),
+                        _ =>    {reg=String::from(""); String::from("Unknown")},
                     };
                     format!     ("{}{}",mnemonic, reg)},
             0xCC => {let a = self.get_word();
@@ -579,30 +579,23 @@ impl Disassemble {
 
         self._result.mnemonic = mnemonic;
         self.result.push( self._result.clone() );
-      //  println!("{:?} {}",self._result.opcodesData, self._result.mnemonic );
-
-        //return self.result;
-
-        //for data in &self.opcodes {
-            //self.opcodesData[ self.maxIdx ].push( data );
-        //    self.result.opcodesData.push( data);
-        //}
-        //self.maxIdx += 1;
     }
 
-  fn output(&self) {
+  fn output(&mut self) {
+        println!("            ORG {}",self.format_word(self.org_address as u16)); // ORG アドレス出力
+
         for i in 0..self.result.len() {
             // ----- ニーモニックを表示 --------
             print!("{:<20}",self.result[i].mnemonic);
 
             // ----- アドレスを表示 ----------
             print!("    ;");
-            print!("{:>04x}:  ",self.result[i].offset);
+            print!("{:>04X}:  ",self.org_address+ self.result[i].offset);
             // ----- 16進数コードを表示 --------
-            for data in &self.result[i].opcodesData {
+            for data in &self.result[i].opcodes_data {
                 print!("{:02X} ",data);
             }
-            let mut count:isize = (4-self.result[i].opcodesData.len()) as isize;
+            let mut count:isize = (4-self.result[i].opcodes_data.len()) as isize;
             if count <0 {
                 count = count * (-1);
             }
@@ -610,8 +603,8 @@ impl Disassemble {
                 print!("   ");
             }
             // ----- キャラクターを表示 --------
-            for data in &self.result[i].opcodesData {
-                print!("{}",toUTF8[ *data as usize]);
+            for data in &self.result[i].opcodes_data {
+                print!("{}",TOUTF8[ *data as usize]);
             }
 
             println!("");
@@ -620,7 +613,7 @@ impl Disassemble {
 
     // データの最後に到達したか？
     fn is_finish(& self)-> bool {
-        return self.readAddress >= self.binData.len();
+        return self.read_address >= self.bin_data.len();
     }
 
 }

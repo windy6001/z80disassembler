@@ -1,4 +1,4 @@
-pub const toUTF8: [&str; 0x100]= [
+pub const TOUTF8: [&str; 0x100]= [
     "　",          // 0x00        月火水木金土日年円時分秒百千万
     "月",
     "火",

@@ -12,3 +12,8 @@ Cargo.lock
 **/*.rs.bk
 
 .DS_Store
+
+*.bin
+log
+test.rs
+
