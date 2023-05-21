@@ -190,6 +190,155 @@ impl Disassemble {
         }
     }
 
+    fn ddfd(&mut self, opcode :u8) ->String {
+        let reg:String;
+        match opcode {
+            0xDD => reg = format!("IX"),
+            0xFD => reg = format!("IY"),
+            _    => reg = format!(""),
+        }
+        let opcode2 = self.get_byte();
+        match opcode2 {
+            0x09 => format!("ADD   {},BC",reg),
+            0x19 => format!("ADD   {},DE",reg),
+            0x21 => {let a = self.get_word();
+                    format!("LD    {},{}",reg ,self.format_word(a) )},
+            0x22 => {let a = self.get_word();
+                    format!("LD    ({}),{}",self.format_word(a) ,reg )},
+            0x23 => format!("INC   {}",reg),
+            0x24 => format!("INC   {}H",reg),
+            0x25 => format!("DEC   {}H",reg),
+            0x26 => {let a = self.get_byte();
+                    format!("LD    {}H,{}",reg ,self.format_byte(a) )},
+            0x29 => format!("ADD   {},{}",reg,reg),
+            0x2a => {let a = self.get_word();
+                    format!("LD    {},({})",reg ,self.format_word(a) )},
+            0x2b => format!("DEC   {}",reg),
+            0x2c => format!("INC   {}L",reg),
+            0x2d => format!("DEC   {}L",reg),
+            0x2e => {let a = self.get_byte();
+                    format!("LD    {}L,{}",reg ,self.format_byte(a) )},
+            0x34 => {let a = self.get_byte();
+                    format!("INC   ({}{}D)"   ,reg,self.format_signed_decimal(a)) },
+            0x35 => {let a = self.get_byte();
+                    format!("DEC   ({}{}D)"   ,reg ,self.format_signed_decimal(a ))},
+            0x36 => {let a = self.get_byte();
+                     let b = self.get_byte();
+                    format!("LD    ({}{}D),{}",reg 
+                                              ,self.format_signed_decimal(a)
+                                              ,self.format_byte(b) )},
+
+            0x39 => format!("ADD   {},SP",reg),
+
+            0x44 => format!("LD    B,{}H",reg),
+            0x45 => format!("LD    B,{}L",reg),
+            0x46 => {let a = self.get_byte();
+                    format!("LD    B,({}{}D)"  ,reg ,self.format_signed_decimal(a))},
+            0x4c => format!("LD    C,{}H",reg),
+            0x4d => format!("LD    C,{}L",reg),
+            0x4e => {let a = self.get_byte();
+                    format!("LD    C,({}{}D)"  ,reg ,self.format_signed_decimal(a))},
+
+            0x54 => format!("LD    D,{}H",reg),
+            0x55 => format!("LD    D,{}L",reg),
+            0x56 => {let a = self.get_byte();
+                    format!("LD    D,({}{}D)" ,reg  ,self.format_signed_decimal(a))},
+            0x5c => format!("LD    E,{}H",reg),
+            0x5d => format!("LD    E,{}L",reg),
+            0x5e => {let a = self.get_byte();
+                    format!("LD    E,({}{}D)" ,reg  ,self.format_signed_decimal(a))},
+    
+            0x60 => format!("LD    {}H,B",reg),
+            0x61 => format!("LD    {}H,C",reg),
+            0x62 => format!("LD    {}H,D",reg),
+            0x63 => format!("LD    {}H,E",reg),
+
+            0x64 => format!("LD    {}H,{}H",reg,reg),
+            0x65 => format!("LD    {}H,{}L",reg,reg),
+            0x66 => {let a = self.get_byte();
+                    format!("LD    H,({}{}D)" ,reg  ,self.format_signed_decimal(a))},
+            
+            0x67 => format!("LD    {}H,A",reg),
+            0x68 => format!("LD    {}L,B",reg),
+            0x69 => format!("LD    {}L,C",reg),
+            0x6a => format!("LD    {}L,D",reg),
+            0x6b => format!("LD    {}L,E",reg),
+        
+            0x6c => format!("LD    {}L,{}H",reg,reg),
+            0x6d => format!("LD    {}L,{}L",reg,reg),
+
+            0x6e => {let a = self.get_byte();
+                    format!("LD    L,({}{}D)" ,reg,self.format_signed_decimal(a))},
+            0x6f => format!("LD    {}L,A",reg),
+            0x70 => {let a = self.get_byte();
+                    format!("LD    ({}{}D),B" ,reg ,self.format_signed_decimal(a))},
+            0x71 => {let a = self.get_byte();
+                    format!("LD    ({}{}D),C" ,reg ,self.format_signed_decimal(a))},
+            0x72 => {let a = self.get_byte();
+                    format!("LD    ({}{}D),D" ,reg ,self.format_signed_decimal(a))},
+            0x73 => {let a = self.get_byte();
+                    format!("LD    ({}{}D),E" ,reg ,self.format_signed_decimal(a))},
+            0x74 => {let a = self.get_byte();
+                    format!("LD    ({}{}D),H" ,reg ,self.format_signed_decimal(a))},
+            0x75 => {let a = self.get_byte();
+                    format!("LD    ({}{}D),L" ,reg ,self.format_signed_decimal(a))},
+            0x77 => {let a = self.get_byte();
+                    format!("LD    ({}{}D),A" ,reg ,self.format_signed_decimal(a))},
+            0x7c => format!("LD    A,{}H"     ,reg),
+            0x7d => format!("LD    A,{}L"     ,reg),
+            0x7e => {let a = self.get_byte();
+                    format!("LD    A,({}{}D)" ,reg ,self.format_signed_decimal(a))},
+
+            0x84 => format!("ADD   A,{}H"     ,reg),
+            0x85 => format!("ADD   A,{}L"     ,reg),
+            0x86 => {let a = self.get_byte();
+                    format!("ADD   A,({}{}D)" ,reg ,self.format_signed_decimal(a))},
+
+            0x8c => format!("ADC   A,{}H"     ,reg),
+            0x8d => format!("ADC   A,{}L"     ,reg),
+            0x8e => {let a = self.get_byte();
+                    format!("ADC   A,({}{}D)" ,reg ,self.format_signed_decimal(a))},
+
+            0x94 => format!("SUB   A,{}H"     ,reg),
+            0x95 => format!("SUB   A,{}L"     ,reg),
+            0x96 => {let a = self.get_byte();
+                    format!("SUB   ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
+
+            0x9c => format!("SBC   A,{}H"     ,reg),
+            0x9d => format!("SBC   A,{}L"     ,reg),
+            0x9e => {let a = self.get_byte();
+                    format!("SBC   A,({}{}D)"   ,reg ,self.format_signed_decimal(a))},
+
+            0xa4 => format!("AND   {}H"     ,reg),
+            0xa5 => format!("AND   {}L"     ,reg),
+            0xa6 => {let a = self.get_byte();
+                    format!("AND   ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
+            
+            0xac => format!("XOR   {}H"     ,reg),
+            0xad => format!("XOR   {}L"     ,reg),
+            0xae => {let a = self.get_byte();
+                    format!("XOR   ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
+
+            0xb4 => format!("OR    {}H"     ,reg),
+            0xb5 => format!("OR    {}L"     ,reg),
+            0xb6 => {let a = self.get_byte();
+                    format!("OR    ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
+
+            0xbc => format!("CP    {}H"     ,reg),
+            0xbd => format!("CP    {}L"     ,reg),
+            0xbe => {let a = self.get_byte();
+                    format!("CP    ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
+            0xe1 => format!("POP   {}"      ,reg),
+            0xe3 => format!("EX  (SP),{}"   ,reg),
+            0xe5 => format!("PUSH  {}"      ,reg),
+            0xe9 => format!("JP    ({})"    ,reg),
+            0xf9 => format!("LD    SP,{}"  ,reg),
+
+            _    => format!("Unknown"),
+        }
+    }
+
+
     // **********************************************
     //      １命令だけ逆アセンブルする
     // **********************************************
@@ -534,156 +683,7 @@ impl Disassemble {
                     format!     ("IN    A,({})",self.format_byte(a))},
             0xDC => {let a = self.get_word();
                     format!     ("CALL  C,{}",self.format_word(a))},
-            0xDD | 0xFD => {
-                    let reg:String;
-                    match opcode {
-                        0xDD => reg = format!("IX"),
-                        0xFD => reg = format!("IY"),
-                        _    => reg = format!(""),
-                    }
-                    let opcode2 = self.get_byte();
-                    match opcode2 {
-                        0x09 => format!("ADD {},BC",reg),
-                        0x19 => format!("ADD {},DE",reg),
-                        0x21 => {let a = self.get_word();
-                                format!("LD    {},{}",reg ,self.format_word(a) )},
-                        0x22 => {let a = self.get_word();
-                                format!("LD    ({}),{}",self.format_word(a) ,reg )},
-                        0x23 => format!("INC   {}",reg),
-                        0x24 => format!("INC   {}H",reg),
-                        0x25 => format!("DEC   {}H",reg),
-                        0x26 => {let a = self.get_byte();
-                                format!("LD    {}H,{}",reg ,self.format_byte(a) )},
-                        0x29 => format!("ADD   {},{}",reg,reg),
-                        0x2a => {let a = self.get_word();
-                                format!("LD    {},({})",reg ,self.format_word(a) )},
-                        0x2b => format!("DEC   {}",reg),
-                        0x2c => format!("INC   {}L",reg),
-                        0x2d => format!("DEC   {}L",reg),
-                        0x2e => {let a = self.get_byte();
-                                format!("LD    {}L,{}",reg ,self.format_byte(a) )},
-                        0x34 => {let a = self.get_byte();
-                                format!("INC   ({}{}D)"   ,reg,self.format_signed_decimal(a)) },
-                        0x35 => {let a = self.get_byte();
-                                format!("DEC   ({}{}D)"   ,reg ,self.format_signed_decimal(a ))},
-                        0x36 => {let a = self.get_byte();
-                                 let b = self.get_byte();
-                                format!("LD    ({}{}D),{}",reg 
-                                                          ,self.format_signed_decimal(a)
-                                                          ,self.format_byte(b) )},
-
-                        0x39 => format!("ADD   {},SP",reg),
-
-                        0x44 => format!("LD    B,{}H",reg),
-                        0x45 => format!("LD    B,{}L",reg),
-                        0x46 => {let a = self.get_byte();
-                                format!("LD    B,({}{}D)"  ,reg ,self.format_signed_decimal(a))},
-                        0x4c => format!("LD    C,{}H",reg),
-                        0x4d => format!("LD    C,{}L",reg),
-                        0x4e => {let a = self.get_byte();
-                                format!("LD    C,({}{}D)"  ,reg ,self.format_signed_decimal(a))},
-
-                        0x54 => format!("LD    D,{}H",reg),
-                        0x55 => format!("LD    D,{}L",reg),
-                        0x56 => {let a = self.get_byte();
-                                format!("LD    D,({}{}D)" ,reg  ,self.format_signed_decimal(a))},
-                        0x5c => format!("LD    E,{}H",reg),
-                        0x5d => format!("LD    E,{}L",reg),
-                        0x5e => {let a = self.get_byte();
-                                format!("LD    E,({}{}D)" ,reg  ,self.format_signed_decimal(a))},
-                
-                        0x60 => format!("LD    {}H,B",reg),
-                        0x61 => format!("LD    {}H,C",reg),
-                        0x62 => format!("LD    {}H,D",reg),
-                        0x63 => format!("LD    {}H,E",reg),
-
-                        0x64 => format!("LD    {}H,{}H",reg,reg),
-                        0x65 => format!("LD    {}H,{}L",reg,reg),
-                        0x66 => {let a = self.get_byte();
-                                format!("LD    H,({}{}D)" ,reg  ,self.format_signed_decimal(a))},
-                        
-                        0x67 => format!("LD    {}H,A",reg),
-                        0x68 => format!("LD    {}L,B",reg),
-                        0x69 => format!("LD    {}L,C",reg),
-                        0x6a => format!("LD    {}L,D",reg),
-                        0x6b => format!("LD    {}L,E",reg),
-                    
-                        0x6c => format!("LD    {}L,{}H",reg,reg),
-                        0x6d => format!("LD    {}L,{}L",reg,reg),
-
-                        0x6e => {let a = self.get_byte();
-                                format!("LD    L,({}{}D)" ,reg,self.format_signed_decimal(a))},
-                        0x6e => {let a = self.get_byte();
-                                format!("LD    L,({}{}D)" ,reg,self.format_signed_decimal(a))},
-                        0x6f => format!("LD    {}L,A",reg),
-                        0x70 => {let a = self.get_byte();
-                                format!("LD    ({}{}D),B" ,reg ,self.format_signed_decimal(a))},
-                        0x71 => {let a = self.get_byte();
-                                format!("LD    ({}{}D),C" ,reg ,self.format_signed_decimal(a))},
-                        0x72 => {let a = self.get_byte();
-                                format!("LD    ({}{}D),D" ,reg ,self.format_signed_decimal(a))},
-                        0x73 => {let a = self.get_byte();
-                                format!("LD    ({}{}D),E" ,reg ,self.format_signed_decimal(a))},
-                        0x74 => {let a = self.get_byte();
-                                format!("LD    ({}{}D),H" ,reg ,self.format_signed_decimal(a))},
-                        0x75 => {let a = self.get_byte();
-                                format!("LD    ({}{}D),L" ,reg ,self.format_signed_decimal(a))},
-                        0x77 => {let a = self.get_byte();
-                                format!("LD    ({}{}D),A" ,reg ,self.format_signed_decimal(a))},
-                        0x7c => format!("LD    A,{}H"     ,reg),
-                        0x7d => format!("LD    A,{}L"     ,reg),
-                        0x7e => {let a = self.get_byte();
-                                format!("LD    A,({}{}D)" ,reg ,self.format_signed_decimal(a))},
-
-                        0x84 => format!("ADD   A,{}H"     ,reg),
-                        0x85 => format!("ADD   A,{}L"     ,reg),
-                        0x86 => {let a = self.get_byte();
-                                format!("ADD   A,({}{}D)" ,reg ,self.format_signed_decimal(a))},
-
-                        0x8c => format!("ADC   A,{}H"     ,reg),
-                        0x8d => format!("ADC   A,{}L"     ,reg),
-                        0x8e => {let a = self.get_byte();
-                                format!("ADC   A,({}{}D)" ,reg ,self.format_signed_decimal(a))},
-
-                        0x94 => format!("SUB   A,{}H"     ,reg),
-                        0x95 => format!("SUB   A,{}L"     ,reg),
-                        0x96 => {let a = self.get_byte();
-                                format!("SUB   ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
-        
-                        0x9c => format!("SBC   A,{}H"     ,reg),
-                        0x9d => format!("SBC   A,{}L"     ,reg),
-                        0x9e => {let a = self.get_byte();
-                                format!("SBC   A,({}{}D)"   ,reg ,self.format_signed_decimal(a))},
-
-                        0xa4 => format!("AND   {}H"     ,reg),
-                        0xa5 => format!("AND   {}L"     ,reg),
-                        0xa6 => {let a = self.get_byte();
-                                format!("AND   ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
-                        
-                        0xac => format!("XOR   {}H"     ,reg),
-                        0xad => format!("XOR   {}L"     ,reg),
-                        0xae => {let a = self.get_byte();
-                                format!("XOR   ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
-
-                        0xb4 => format!("OR    {}H"     ,reg),
-                        0xb5 => format!("OR    {}L"     ,reg),
-                        0xb6 => {let a = self.get_byte();
-                                format!("OR    ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
-
-                        0xbc => format!("CP    {}H"     ,reg),
-                        0xbd => format!("CP    {}L"     ,reg),
-                        0xbe => {let a = self.get_byte();
-                                format!("CP    ({}{}D)"   ,reg ,self.format_signed_decimal(a))},
-        
-                        0xe1 => format!("POP   {}"      ,reg),
-                        0xe3 => format!("EX  (SP),{}"   ,reg),
-                        0xe5 => format!("PUSH  {}"      ,reg),
-                        0xe9 => format!("JP    ({})"    ,reg),
-                        0xf9 => format!("LD    SP,{}"  ,reg),
-
-                        _    => format!("Unknown"),
-                    }
-            }
+            0xDD | 0xFD => self.ddfd( opcode),
             0xDE => {let a = self.get_byte();
                     format!     ("SBC   A,{}",self.format_byte(a))},
 
@@ -706,8 +706,80 @@ impl Disassemble {
             0xEB => String::from("EX    DE,HL"),
             0xEC => {let a = self.get_word();
                     format!     ("CALL  PE,{}",self.format_word(a))},
-            //0xED =>  工事中
-            
+            0xED => {
+                    let opcode2 = self.get_byte();
+                    match opcode2 {
+                        0x40 => format!("IN    B,(C)"),
+                        0x41 => format!("OUT   (C),B"),
+                        0x42 => format!("SBC   HL,BC"),
+                        0x43 => {let a = self.get_word();
+                                format!("LD    ({}),BC",self.format_word(a))},
+                        0x44 => format!("NEG"),
+                        0x45 => format!("RETN"),
+                        0x46 => format!("IM 0"),
+                        0x47 => format!("LD    I,A"),
+                        0x48 => format!("IN    C,(C)"),
+                        0x49 => format!("OUT   (C),C"),
+                        0x4A => format!("ADC   HL,BC"),
+                        0x4B => {let a = self.get_word();
+                                format!("LD    BC,({})",self.format_word(a))},
+                        0x4D => format!("RETI "),
+                        0x4F => format!("LD    R,A "),
+
+                        0x50 => format!("IN    D,(C)"),
+                        0x51 => format!("OUT   (C),D"),
+                        0x52 => format!("SBC   HL,DE"),
+                        0x53 => {let a = self.get_word();
+                                format!("LD    ({}),DE",self.format_word(a))},
+                        0x56 => format!("IM    1 "),
+                        0x57 => format!("LD    A,I "),
+
+                        0x58 => format!("IN    E,(C)"),
+                        0x59 => format!("OUT   (C),E"),
+                        0x5A => format!("ADC   HL,DE"),
+                        0x5B => {let a = self.get_word();
+                                format!("LD    DE,({})",self.format_word(a))},
+                        0x5E => format!("IM    2 "),
+                        0x5F => format!("LD    A,R"),
+                        0x60 => format!("IN    H,(C)"),
+                        0x61 => format!("OUT   (C),H"),
+
+                        0x62 => format!("SBC   HL,HL"),
+                        0x67 => format!("RRD"),
+                        0x68 => format!("IN    L,(C)"),
+                        0x69 => format!("OUT   (C),L"),
+                        0x6a => format!("ADC   HL,HL"),
+                        0x6f => format!("RLD"),
+                        0x72 => format!("SBC   HL,SP"),
+                        0x73 => {let a = self.get_word();
+                                format!("LD    ({}),SP",self.format_word(a))},
+                        0x7A => format!("ADC   HL,SP"),
+                        0x7B => {let a = self.get_word();
+                                format!("LD    SP,({})",self.format_word(a))},
+                        
+                        0xa0 => format!("LDI"),
+                        0xa1 => format!("CPI"),
+                        0xa2 => format!("INI"),
+                        0xa3 => format!("OUTI"),
+    
+                        0xa8 => format!("LDD"),
+                        0xa9 => format!("CPD"),
+                        0xaa => format!("IND"),
+                        0xab => format!("OUTD"),
+
+                        0xb0 => format!("LDIR"),
+                        0xb1 => format!("CPIR"),
+                        0xb2 => format!("INIR"),
+                        0xb3 => format!("OUTIR"),
+
+                        0xb8 => format!("LDDR"),
+                        0xb9 => format!("CPDR"),
+                        0xba => format!("INDR"),
+                        0xbb => format!("OTDR"),
+                        _ => format!("Unknown"),
+                    }
+                }
+                
             0xEE => {let a = self.get_byte();
                     format!     ("XOR   {}",self.format_byte(a))},
 
@@ -730,7 +802,6 @@ impl Disassemble {
             0xFB => String::from("EI    "),
             0xFC => {let a = self.get_word();
                     format!     ("CALL  M,{}",self.format_word(a))},
-            //0xFD =>  工事中
             0xFE => {let a = self.get_byte();
                     format!     ("CP    {}",self.format_byte(a))},
             0xFF => String::from("RST   38H"),
