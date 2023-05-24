@@ -151,7 +151,7 @@ impl Disassemble {
     // **********************************************
     //      2バイト数値をフォーマットする
     // **********************************************
-    fn format_word(&mut self,address:u16) -> String {
+    fn format_word(&mut self,address:usize) -> String {
         let s = format!("{:04X}H",address);
         let t:String;  
         let ch = s.chars().nth(0).unwrap(); // １６進数の文字列にしてみて一文字目を抜き出す
@@ -202,9 +202,9 @@ impl Disassemble {
             0x09 => format!("ADD   {},BC",reg),
             0x19 => format!("ADD   {},DE",reg),
             0x21 => {let a = self.get_word();
-                    format!("LD    {},{}",reg ,self.format_word(a) )},
+                    format!("LD    {},{}",reg ,self.format_word(a.into()) )},
             0x22 => {let a = self.get_word();
-                    format!("LD    ({}),{}",self.format_word(a) ,reg )},
+                    format!("LD    ({}),{}",self.format_word(a.into()) ,reg )},
             0x23 => format!("INC   {}",reg),
             0x24 => format!("INC   {}H",reg),
             0x25 => format!("DEC   {}H",reg),
@@ -212,7 +212,7 @@ impl Disassemble {
                     format!("LD    {}H,{}",reg ,self.format_byte(a) )},
             0x29 => format!("ADD   {},{}",reg,reg),
             0x2a => {let a = self.get_word();
-                    format!("LD    {},({})",reg ,self.format_word(a) )},
+                    format!("LD    {},({})",reg ,self.format_word(a.into()) )},
             0x2b => format!("DEC   {}",reg),
             0x2c => format!("INC   {}L",reg),
             0x2d => format!("DEC   {}L",reg),
@@ -352,7 +352,7 @@ impl Disassemble {
         let mnemonic:String = match opcode {
             0x00 => String::from("NOP"),
             0x01 => {let a = self.get_word(); 
-                    format!     ("LD    BC,{}",self.format_word(a))},
+                    format!     ("LD    BC,{}",self.format_word(a.into()))},
             0x02 => String::from("LD    (BC),A"),
             0x03 => String::from("INC   BC"),
             0x04 => String::from("INC   B"),
@@ -374,7 +374,7 @@ impl Disassemble {
                     format!     ("DJNZ  {}",self.format_byte(a))},  // relative jump
 
             0x11 => {let a = self.get_word();
-                    format!     ("LD    DE,{}",self.format_word(a))},
+                    format!     ("LD    DE,{}",self.format_word(a.into()))},
             0x12 => String::from("LD    (DE),A"),
             0x13 => String::from("INC   DE"),
             0x14 => String::from("INC   D"),
@@ -382,8 +382,6 @@ impl Disassemble {
             0x16 => {let a = self.get_byte();
                     format!     ("LD    D,{}",self.format_byte(a))},
             0x17 => String::from("RLA   "),
-            0x18 => {let a = self.get_byte();
-                    format!     ("JR    {}",self.format_byte(a))},  // relative jump
             0x19 => String::from("ADD   HL,DE"),
             0x1A => String::from("LD    A,(DE)"),
             0x1B => String::from("DEC   DE"),
@@ -392,48 +390,40 @@ impl Disassemble {
             0x1E => {let a = self.get_byte();
                     format!     ("LD     E,{}",self.format_byte(a))},
             0x1F => String::from("RRA   "),
-            0x20 => {let a = self.get_byte();
-                    format!     ("JR    NZ,{}",self.format_byte(a))},  // relative jump
                                          
             0x21 => {let a = self.get_word();
-                    format!     ("LD    HL,{}",self.format_word(a) )},
+                    format!     ("LD    HL,{}",self.format_word(a.into()) )},
             0x22 => {let a = self.get_word();
-                    format!     ("LD    ({}),HL",self.format_word(a) )},
+                    format!     ("LD    ({}),HL",self.format_word(a.into()) )},
             0x23 => String::from("INC   HL"),
             0x24 => String::from("INC   H"),
             0x25 => String::from("DEC   H"),
             0x26 => {let a = self.get_byte();
                     format!     ("LD    H,{}",self.format_byte(a))},
             0x27 => String::from("DAA   "),
-            0x28 => {let a = self.get_byte();
-                    format!     ("JR    Z,{}",self.format_byte(a))},  // relative jump
             0x29 => String::from("ADD   HL,HL"),
             0x2A => {let a = self.get_word();
-                    format!     ("LD    HL,({})",self.format_word(a))},
+                    format!     ("LD    HL,({})",self.format_word(a.into()))},
             0x2B => String::from("DEC   HL"),
             0x2C => String::from("INC   L"),
             0x2D => String::from("DEC   L"),
             0x2E => {let a = self.get_byte();
                     format!     ("LD    L,{}",self.format_byte(a))},
             0x2F => String::from("CPL   "),
-            0x30 => {let a = self.get_byte();
-                    format!     ("JR    NC,{}",self.format_byte(a))},  // relative jump
  
             0x31 => {let a = self.get_word();
-                    format!     ("LD    SP,{}",self.format_word(a))},
+                    format!     ("LD    SP,{}",self.format_word(a.into()))},
             0x32 => {let a = self.get_word();
-                    format!     ("LD    ({}),A",self.format_word(a))},
+                    format!     ("LD    ({}),A",self.format_word(a.into()))},
             0x33 => String::from("INC   SP"),
             0x34 => String::from("INC   (HL)"),
             0x35 => String::from("DEC   (HL)"),
             0x36 => {let a = self.get_byte();
                     format!     ("LD    (HL),{}",self.format_byte(a))},
             0x37 => String::from("SCF   "),
-            0x38 => {let a = self.get_byte();
-                    format!     ("JR    C,{}",self.format_byte(a))},  // relative jump
             0x39 => String::from("LD    HL,SP"),
             0x3A => {let a = self.get_word();
-                    format!     ("LD    A,({})",self.format_word(a))},
+                    format!     ("LD    A,({})",self.format_word(a.into()))},
             0x3B => String::from("DEC   SP"),
             0x3C => String::from("INC   A"),
             0x3D => String::from("DEC   A"),
@@ -588,20 +578,15 @@ impl Disassemble {
  
             0xC0 => String::from("RET   NZ"),
             0xC1 => String::from("POP   BC"),
-            0xC2 => {let a = self.get_word();
-                    format!     ("JP    NZ,{}",self.format_word(a))},
-            0xC3 => {let a = self.get_word();
-                    format!     ("JP    {}",self.format_word(a))},
-            0xC4 => {let a = self.get_word();
-                    format!     ("CALL  NZ,{}",self.format_word(a))},
+
+                
             0xC5 => String::from("PUSH  BC"),
             0xC6 => {let a = self.get_byte();
                     format!     ("ADD   A,{}",self.format_byte(a))},
             0xC7 => String::from("RST   00H"),
             0xC8 => String::from("RET   Z"),
             0xC9 => String::from("RET    "),
-            0xCA => {let a = self.get_word();
-                    format!     ("JP    Z,{}",self.format_word(a))},
+
             0xCB => {let opcode2 = self.get_byte();
                     let b = opcode2 & 7;
                     let mut reg = match b {
@@ -655,34 +640,22 @@ impl Disassemble {
                         _ =>    {reg=String::from(""); String::from("Unknown")},
                     };
                     format!     ("{}{}",mnemonic, reg)},
-            0xCC => {let a = self.get_word();
-                    format!     ("CALL  Z,{}",self.format_word(a))},
-            0xCD => {let a = self.get_word();
-                    format!     ("CALL  {}",self.format_word(a))},
             0xCE => {let a = self.get_byte();
                     format!     ("ADC   A,{}",self.format_byte(a))},
 
             0xCF => String::from("RST   08H"),
             0xD0 => String::from("RET   NC"),
             0xD1 => String::from("POP   DE"),
-            0xD2 => {let a = self.get_word();
-                    format!     ("JP    NC,{}",self.format_word(a))},
             0xD3 => {let a = self.get_byte();
                     format!     ("OUT   ({}),A",self.format_byte(a))},
-            0xD4 => {let a = self.get_word();
-                    format!     ("CALL  NC,{}",self.format_word(a))},
             0xD5 => String::from("PUSH  DE"),
             0xD6 => {let a = self.get_byte();
                     format!     ("SUB   {}",self.format_byte(a))},
             0xD7 => String::from("RST   10H"),
             0xD8 => String::from("RET   C"),
             0xD9 => String::from("EXX"),
-            0xDA => {let a = self.get_word();
-                    format!     ("JP    C,{}",self.format_word(a))},
             0xDB => {let a = self.get_byte();
                     format!     ("IN    A,({})",self.format_byte(a))},
-            0xDC => {let a = self.get_word();
-                    format!     ("CALL  C,{}",self.format_word(a))},
             0xDD | 0xFD => self.ddfd( opcode),
             0xDE => {let a = self.get_byte();
                     format!     ("SBC   A,{}",self.format_byte(a))},
@@ -690,22 +663,15 @@ impl Disassemble {
             0xDF => String::from("RST   18H"),
             0xE0 => String::from("RET   PO"),
             0xE1 => String::from("POP   HL"),
-            0xE2 => {let a = self.get_word();
-                    format!     ("JP    PO,{}",self.format_word(a))},
             0xE3 => String::from("EX    (SP),HL"),
-            0xE4 => {let a = self.get_word();
-                    format!     ("CALL  PO,{}",self.format_word(a))},
             0xE5 => String::from("PUSH  HL"),
             0xE6 => {let a = self.get_byte();
                     format!     ("AND   {}",self.format_byte(a))},
             0xE7 => String::from("RST   20H"),
             0xE8 => String::from("RET   PE"),
             0xE9 => String::from("JP    (HL)"),
-            0xEA => {let a = self.get_word();
-                    format!     ("JP    PE,{}",self.format_word(a))},
             0xEB => String::from("EX    DE,HL"),
-            0xEC => {let a = self.get_word();
-                    format!     ("CALL  PE,{}",self.format_word(a))},
+            // ============ ED 命令 ================
             0xED => {
                     let opcode2 = self.get_byte();
                     match opcode2 {
@@ -713,7 +679,7 @@ impl Disassemble {
                         0x41 => format!("OUT   (C),B"),
                         0x42 => format!("SBC   HL,BC"),
                         0x43 => {let a = self.get_word();
-                                format!("LD    ({}),BC",self.format_word(a))},
+                                format!("LD    ({}),BC",self.format_word(a.into()))},
                         0x44 => format!("NEG"),
                         0x45 => format!("RETN"),
                         0x46 => format!("IM 0"),
@@ -722,7 +688,7 @@ impl Disassemble {
                         0x49 => format!("OUT   (C),C"),
                         0x4A => format!("ADC   HL,BC"),
                         0x4B => {let a = self.get_word();
-                                format!("LD    BC,({})",self.format_word(a))},
+                                format!("LD    BC,({})",self.format_word(a.into()))},
                         0x4D => format!("RETI "),
                         0x4F => format!("LD    R,A "),
 
@@ -730,7 +696,7 @@ impl Disassemble {
                         0x51 => format!("OUT   (C),D"),
                         0x52 => format!("SBC   HL,DE"),
                         0x53 => {let a = self.get_word();
-                                format!("LD    ({}),DE",self.format_word(a))},
+                                format!("LD    ({}),DE",self.format_word(a.into()))},
                         0x56 => format!("IM    1 "),
                         0x57 => format!("LD    A,I "),
 
@@ -738,7 +704,7 @@ impl Disassemble {
                         0x59 => format!("OUT   (C),E"),
                         0x5A => format!("ADC   HL,DE"),
                         0x5B => {let a = self.get_word();
-                                format!("LD    DE,({})",self.format_word(a))},
+                                format!("LD    DE,({})",self.format_word(a.into()))},
                         0x5E => format!("IM    2 "),
                         0x5F => format!("LD    A,R"),
                         0x60 => format!("IN    H,(C)"),
@@ -752,10 +718,10 @@ impl Disassemble {
                         0x6f => format!("RLD"),
                         0x72 => format!("SBC   HL,SP"),
                         0x73 => {let a = self.get_word();
-                                format!("LD    ({}),SP",self.format_word(a))},
+                                format!("LD    ({}),SP",self.format_word(a.into()))},
                         0x7A => format!("ADC   HL,SP"),
                         0x7B => {let a = self.get_word();
-                                format!("LD    SP,({})",self.format_word(a))},
+                                format!("LD    SP,({})",self.format_word(a.into()))},
                         
                         0xa0 => format!("LDI"),
                         0xa1 => format!("CPI"),
@@ -786,26 +752,68 @@ impl Disassemble {
             0xEF => String::from("RST   28H"),
             0xF0 => String::from("RET   P"),
             0xF1 => String::from("POP   AF"),
-            0xF2 => {let a = self.get_word();
-                    format!     ("JP    P,{}",self.format_word(a))},
             0xF3 => String::from("DI    "),
-            0xF4 => {let a = self.get_word();
-                    format!     ("CALL  P,{}",self.format_word(a))},
             0xF5 => String::from("PUSH  AF"),
             0xF6 => {let a = self.get_byte();
                     format!     ("OR    {}",self.format_byte(a))},
             0xF7 => String::from("RST   30H"),
             0xF8 => String::from("RET   M"),
             0xF9 => String::from("LD    SP,HL"),
-            0xFA => {let a = self.get_word();
-                    format!     ("JP    M,{}",self.format_word(a))},
             0xFB => String::from("EI    "),
-            0xFC => {let a = self.get_word();
-                    format!     ("CALL  M,{}",self.format_word(a))},
             0xFE => {let a = self.get_byte();
                     format!     ("CP    {}",self.format_byte(a))},
             0xFF => String::from("RST   38H"),
 
+            // ======= JR 命令 ===========
+            0x18|0x20|0x28|0x30|0x38 => {
+                let condition = match opcode {
+                    0x18 => "",
+                    0x20 => "NZ,",
+                    0x28 => "Z,",
+                    0x30 => "NC,",
+                    0x38 => "C,",
+                    _    => "",
+                };
+                let a = self.get_byte();
+                let address:usize;
+                if a <0x80 {        // 正の数値
+                    let duration:usize = a.into();
+                    address = self.read_address+duration as usize;
+                }else {
+                    let duration:usize = (!a+1).into();
+                    //println!("read_address={:x} duration={:x} ",self.read_address, duration);
+
+                    address = self.read_address-duration as usize;  // マイナスになると落ちてしまう
+                }
+                format!     ("JR    {}{}",condition ,self.format_word( address))},
+
+            // ======= JP , CALL 命令 ===========
+            0xC3|0xDA|0xD2|0xCA|0xC2|0xEA|0xE2|0xFA|0xF2|0xCD|0xDC|0xD4|0xCC|0xC4|0xEC|0xE4|0xFC|0xF4
+            => {
+                let condition;
+                let order;
+                condition = match opcode {
+                    0xC3 | 0xCD => "",
+                    0xDA | 0xDC => "C,",
+                    0xD2 | 0xD4 => "NC,",
+                    0xCA | 0xCC => "Z,",
+                    0xC2 | 0xC4 => "NZ,",
+                    0xEA | 0xEC => "PE,",
+                    0xE2 | 0xE4 => "PO,",
+                    0xFA | 0xFC => "M,",
+                    0xF2 | 0xF4 => "P,",
+                    _ => "  ",
+                };
+                if opcode & 0x2 ==2 {
+                    order = "JP    ";
+                } else {
+                    order = "CALL  "
+                }
+                
+                let a = self.get_word();
+                format!     ("{}{}{}",order, condition , self.format_word(a.into() ))
+            },
+            
             _ => String::from("Unknown"),
         };
 
@@ -814,7 +822,7 @@ impl Disassemble {
     }
 
   fn output(&mut self) {
-        println!("            ORG {}",self.format_word(self.org_address as u16)); // ORG アドレス出力
+        println!("            ORG {}",self.format_word(self.org_address )); // ORG アドレス出力
 
         for i in 0..self.result.len() {
             // ----- ニーモニックを表示 --------

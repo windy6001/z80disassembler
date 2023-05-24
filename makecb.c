@@ -30,7 +30,27 @@ void make_ddfd(void)
 	fclose(fp);
 }
 
+
+void make_jr(void) 
+{
+	FILE *fp=fopen("jr.bin","w"); if(fp==NULL){printf("file open error\n");exit(0);}
+	fprintf(fp,"%c%c",0x18,5);
+	fprintf(fp,"%c%c",0x18,0x10);
+	fprintf(fp,"%c%c",0x20,0xfc);
+	fprintf(fp,"%c%c",0x20,0xfc);
+	fprintf(fp,"%c%c",0x28,0xf6);
+	fprintf(fp,"%c%c",0x28,0xf6);
+	fprintf(fp,"%c%c",0x30,0xf2);
+	fprintf(fp,"%c%c",0x30,0xf4);
+	fprintf(fp,"%c%c",0x38,0xf2);
+	fprintf(fp,"%c%c",0x38,0xf4);
+
+	fclose(fp);
+}
+
+
 int main(void){
 	make_cb();
 	make_ddfd();
+	make_jr();
 }
