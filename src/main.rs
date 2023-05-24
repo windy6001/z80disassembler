@@ -190,6 +190,9 @@ impl Disassemble {
         }
     }
 
+     // **********************************************
+    //      dd/fd 命令のためのサブルーチン
+    // **********************************************
     fn ddfd(&mut self, opcode :u8) ->String {
         let reg:String;
         match opcode {
