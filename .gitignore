@@ -16,4 +16,6 @@ Cargo.lock
 *.bin
 log
 test.rs
+*.ROM
+*.asm
 
