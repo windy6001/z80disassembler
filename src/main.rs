@@ -373,8 +373,8 @@ impl Disassemble {
             0x0E => {let a= self.get_byte();
                     format!     ("LD    C,{}",self.format_byte(a))},
             0x0F => String::from("RRCA" ),
-            0x10 => {let a= self.get_byte();
-                    format!     ("DJNZ  {}",self.format_byte(a))},  // relative jump
+ //           0x10 => {let a= self.get_byte();
+ //                   format!     ("DJNZ  {}",self.format_byte(a))},  // relative jump
 
             0x11 => {let a = self.get_word();
                     format!     ("LD    DE,{}",self.format_word(a.into()))},
@@ -722,6 +722,8 @@ impl Disassemble {
                         0x72 => format!("SBC   HL,SP"),
                         0x73 => {let a = self.get_word();
                                 format!("LD    ({}),SP",self.format_word(a.into()))},
+                        0x78 => format!("IN    A,(C)"),
+                        0x79 => format!("OUT   (C),A"),
                         0x7A => format!("ADC   HL,SP"),
                         0x7B => {let a = self.get_word();
                                 format!("LD    SP,({})",self.format_word(a.into()))},
@@ -768,27 +770,30 @@ impl Disassemble {
             0xFF => String::from("RST   38H"),
 
             // ======= JR 命令 ===========
-            0x18|0x20|0x28|0x30|0x38 => {
+            0x10|0x18|0x20|0x28|0x30|0x38 => {
+                let c:&str;
                 let condition = match opcode {
-                    0x18 => "",
                     0x20 => "NZ,",
                     0x28 => "Z,",
                     0x30 => "NC,",
                     0x38 => "C,",
                     _    => "",
                 };
+                if opcode == 0x10 {
+                        c = "DJNZ";
+                }else {
+                        c = "JR  ";
+                }
                 let a = self.get_byte();
                 let address:usize;
                 if a <0x80 {        // 正の数値
                     let duration:usize = a.into();
-                    address = self.read_address+duration as usize;
+                    address = self.org_address + self.read_address+duration as usize; 
                 }else {
                     let duration:usize = (!a+1).into();
-                    //println!("read_address={:x} duration={:x} ",self.read_address, duration);
-
-                    address = self.read_address-duration as usize;  // マイナスになると落ちてしまう
+                    address = self.org_address + self.read_address-duration as usize;
                 }
-                format!     ("JR    {}{}",condition ,self.format_word( address))},
+                format!     ("{}  {}{}",c , condition ,self.format_word( address))},
 
             // ======= JP , CALL 命令 ===========
             0xC3|0xDA|0xD2|0xCA|0xC2|0xEA|0xE2|0xFA|0xF2|0xCD|0xDC|0xD4|0xCC|0xC4|0xEC|0xE4|0xFC|0xF4
